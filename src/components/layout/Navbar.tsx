@@ -47,7 +47,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     onTabChange('farmer_dashboard');
     setIsDemoDropdownOpen(false);
     setIsMobileMenuOpen(false);
-    success('Switched to Demo Farmer (Ramesh Kumar - Green Valley FPO)', 'Farmer Account');
+    success('Switched to Demo Farmer (Kiran - Green Valley FPO)', 'Farmer Account');
   };
 
   const handleSwitchToBuyer = () => {
@@ -218,7 +218,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </div>
                       <div>
                         <div className="text-sm font-semibold leading-tight">Farmer View</div>
-                        <div className="text-[11px] text-stone-500">Ramesh Kumar • Green Valley</div>
+                        <div className="text-[11px] text-stone-500">Kiran • Green Valley</div>
                       </div>
                     </button>
 

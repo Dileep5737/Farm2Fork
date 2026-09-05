@@ -6,7 +6,7 @@ const STORAGE_KEYS = {
   CROPS: 'farm2fork_crops',
   ORDERS: 'farm2fork_orders',
   WEIGHTS: 'farm2fork_weights',
-  INITIALIZED: 'farm2fork_initialized_v3',
+  INITIALIZED: 'farm2fork_initialized_v4',
 };
 
 // Curated high quality agriculture images
@@ -48,7 +48,7 @@ export const SAMPLE_CROP_IMAGES = {
 
 export const DEMO_FARMER: User = {
   id: 'farmer-1',
-  name: 'Ramesh Kumar',
+  name: 'Kiran',
   email: 'farmer@farm2fork.com',
   phone: '+91 98450 12345',
   role: 'FARMER',
@@ -163,7 +163,7 @@ export const SEED_CROPS: CropListing[] = [
   {
     id: 'crop-tomato-1',
     farmerId: 'farmer-1',
-    farmerName: 'Ramesh Kumar',
+    farmerName: 'Kiran',
     farmName: 'Green Valley Organic Farms',
     farmerPhone: '+91 98450 12345',
     farmerRating: 4.9,
@@ -225,7 +225,7 @@ export const SEED_CROPS: CropListing[] = [
   {
     id: 'crop-tomato-3',
     farmerId: 'farmer-1',
-    farmerName: 'Ramesh FPO',
+    farmerName: 'Kiran FPO',
     farmName: 'Green Valley FPO Network',
     farmerPhone: '+91 98450 12345',
     farmerRating: 4.8,
@@ -350,7 +350,7 @@ export const SEED_CROPS: CropListing[] = [
   {
     id: 'crop-potato-1',
     farmerId: 'farmer-1',
-    farmerName: 'Ramesh Kumar',
+    farmerName: 'Kiran',
     farmName: 'Green Valley Organic Farms',
     farmerPhone: '+91 98450 12345',
     farmerRating: 4.9,
@@ -383,7 +383,7 @@ export const SEED_CROPS: CropListing[] = [
   {
     id: 'crop-carrot-1',
     farmerId: 'farmer-1',
-    farmerName: 'Ramesh Kumar',
+    farmerName: 'Kiran',
     farmName: 'Green Valley Organic Farms',
     farmerPhone: '+91 98450 12345',
     farmerRating: 4.9,
@@ -547,7 +547,7 @@ export const SEED_ORDERS: Order[] = [
     cropName: 'Vine Ripe Hybrid Tomato',
     cropImage: SAMPLE_CROP_IMAGES.tomato[0],
     farmerId: 'farmer-1',
-    farmerName: 'Ramesh Kumar',
+    farmerName: 'Kiran',
     farmName: 'Green Valley Organic Farms',
     farmerPhone: '+91 98450 12345',
     buyerId: 'buyer-arjun',
@@ -570,7 +570,7 @@ export const SEED_ORDERS: Order[] = [
     cropName: 'Kufri Jyoti Fresh Potato',
     cropImage: SAMPLE_CROP_IMAGES.potato[0],
     farmerId: 'farmer-1',
-    farmerName: 'Ramesh Kumar',
+    farmerName: 'Kiran',
     farmName: 'Green Valley Organic Farms',
     farmerPhone: '+91 98450 12345',
     buyerId: 'buyer-neha',
@@ -593,7 +593,7 @@ export const SEED_ORDERS: Order[] = [
     cropName: 'Ooty Sweet Orange Carrot',
     cropImage: SAMPLE_CROP_IMAGES.carrot[0],
     farmerId: 'farmer-1',
-    farmerName: 'Ramesh Kumar',
+    farmerName: 'Kiran',
     farmName: 'Green Valley Organic Farms',
     farmerPhone: '+91 98450 12345',
     buyerId: 'buyer-1',
@@ -616,7 +616,7 @@ export const SEED_ORDERS: Order[] = [
     cropName: 'Vine Ripe Hybrid Tomato',
     cropImage: SAMPLE_CROP_IMAGES.tomato[0],
     farmerId: 'farmer-1',
-    farmerName: 'Ramesh Kumar',
+    farmerName: 'Kiran',
     farmName: 'Green Valley Organic Farms',
     farmerPhone: '+91 98450 12345',
     buyerId: 'buyer-vikram',
@@ -646,6 +646,20 @@ export const StorageService = {
       localStorage.setItem(STORAGE_KEYS.WEIGHTS, JSON.stringify(DEFAULT_WEIGHTS));
       localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(DEMO_BUYER));
       localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
+    } else {
+      // Migrate any existing cached user in browser if needed
+      const storedUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          if (parsedUser.id === 'farmer-1' && (parsedUser.name === 'Ramesh Kumar' || !parsedUser.name)) {
+            parsedUser.name = 'Kiran';
+            localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(parsedUser));
+          }
+        } catch {
+          // ignore
+        }
+      }
     }
   },
 
