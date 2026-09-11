@@ -644,7 +644,6 @@ export const StorageService = {
       localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(SEED_CROPS));
       localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(SEED_ORDERS));
       localStorage.setItem(STORAGE_KEYS.WEIGHTS, JSON.stringify(DEFAULT_WEIGHTS));
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(DEMO_BUYER));
       localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
     } else {
       // Migrate any existing cached user in browser if needed
@@ -663,10 +662,10 @@ export const StorageService = {
     }
   },
 
-  getCurrentUser(): User {
+  getCurrentUser(): User | null {
     this.initialize();
     const data = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-    return data ? JSON.parse(data) : DEMO_BUYER;
+    return data ? JSON.parse(data) : null;
   },
 
   setCurrentUser(user: User | null) {

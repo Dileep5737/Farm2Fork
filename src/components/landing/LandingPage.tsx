@@ -94,7 +94,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               onClick={() => onLoginAs('BUYER')}
               className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-white hover:bg-stone-100 text-stone-950 font-bold text-base shadow-lg shadow-white/10 flex items-center justify-center gap-2.5 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
             >
-              <span>🛒 Login as Buyer</span>
+              <span>👤 Login as Consumer</span>
               <ArrowRight className="w-5 h-5" />
             </button>
           </div>

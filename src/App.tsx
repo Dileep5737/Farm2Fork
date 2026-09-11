@@ -4,7 +4,7 @@ import { DEMO_BUYER, DEMO_FARMER, StorageService } from './services/storage';
 import { ToastProvider } from './context/ToastContext';
 import { Navbar } from './components/layout/Navbar';
 import { LandingPage } from './components/landing/LandingPage';
-import { AuthModal } from './components/auth/AuthModal';
+import { LoginPage } from './components/auth/LoginPage';
 import { FarmerDashboard } from './components/farmer/FarmerDashboard';
 import { BuyerMarketplace } from './components/buyer/BuyerMarketplace';
 import { BuyerOrders } from './components/buyer/BuyerOrders';
@@ -17,11 +17,10 @@ export const AppContent: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>(() => StorageService.getOrders());
   const [activeTab, setActiveTab] = useState<string>(() => {
     const user = StorageService.getCurrentUser();
-    return user ? (user.role === 'FARMER' ? 'farmer_dashboard' : 'marketplace') : 'landing';
+    return user ? (user.role === 'FARMER' ? 'farmer_dashboard' : 'marketplace') : 'login';
   });
 
-  // Modal states
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  // Login flow state
   const [authInitialRole, setAuthInitialRole] = useState<Role>('FARMER');
   const [selectedCropForDetails, setSelectedCropForDetails] = useState<CropListing | null>(null);
   const [selectedCropForBuy, setSelectedCropForBuy] = useState<CropListing | null>(null);
@@ -40,13 +39,12 @@ export const AppContent: React.FC = () => {
 
   const handleOpenAuth = (initialRole: Role = 'FARMER') => {
     setAuthInitialRole(initialRole);
-    setIsAuthModalOpen(true);
+    setActiveTab('login');
   };
 
   const handleLandingLoginAs = (role: Role) => {
-    const demoUser = role === 'FARMER' ? DEMO_FARMER : DEMO_BUYER;
-    handleUserChange(demoUser);
-    setActiveTab(role === 'FARMER' ? 'farmer_dashboard' : 'marketplace');
+    setAuthInitialRole(role);
+    setActiveTab('login');
   };
 
   const handleExploreMarketplace = () => {
@@ -68,6 +66,20 @@ export const AppContent: React.FC = () => {
             o.buyerName.toLowerCase().includes(currentUser.name.toLowerCase().split(' ')[0])
         ).length
     : 0;
+
+  // Render Full Screen Login Page when activeTab === 'login'
+  if (activeTab === 'login') {
+    return (
+      <LoginPage
+        initialRole={authInitialRole}
+        onBackToHome={() => setActiveTab(currentUser ? (currentUser.role === 'FARMER' ? 'farmer_dashboard' : 'marketplace') : 'landing')}
+        onSuccess={(user) => {
+          handleUserChange(user);
+          setActiveTab(user.role === 'FARMER' ? 'farmer_dashboard' : 'marketplace');
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-50 font-sans selection:bg-farm-200 selection:text-farm-900">
@@ -158,17 +170,6 @@ export const AppContent: React.FC = () => {
         )}
       </main>
 
-      {/* Global Auth Modal */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        initialRole={authInitialRole}
-        onClose={() => setIsAuthModalOpen(false)}
-        onSuccess={(user) => {
-          handleUserChange(user);
-          setActiveTab(user.role === 'FARMER' ? 'farmer_dashboard' : 'marketplace');
-        }}
-      />
-
       {/* Global Product Details Modal */}
       {selectedCropForDetails && (
         <CropDetailsModal
@@ -207,3 +208,4 @@ export default function App() {
     </ToastProvider>
   );
 }
+

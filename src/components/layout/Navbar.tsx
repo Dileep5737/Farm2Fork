@@ -68,7 +68,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const handleLogout = () => {
     onUserChange(null);
-    onTabChange('landing');
+    onTabChange('login');
     setIsDemoDropdownOpen(false);
     setIsMobileMenuOpen(false);
     info('You have logged out.');
@@ -289,9 +289,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
                 <button
                   onClick={() => onOpenAuth('BUYER')}
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-farm-600 hover:bg-farm-700 shadow-sm transition-colors"
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-farm-600 hover:bg-farm-700 shadow-sm transition-colors cursor-pointer"
                 >
-                  Buyer Login
+                  Consumer Login
                 </button>
               </div>
             )}
@@ -401,7 +401,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }}
                   className="w-full py-2 text-center text-sm font-bold text-white bg-farm-600 rounded-lg"
                 >
-                  Login as Buyer
+                  Login as Consumer
                 </button>
               </div>
             )}

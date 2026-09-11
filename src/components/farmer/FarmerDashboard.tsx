@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { CropCategory, CropListing, Order, QualityGrade, User, OrderStatus } from '../../types';
 import { SAMPLE_CROP_IMAGES, StorageService } from '../../services/storage';
 import {
@@ -9,7 +9,6 @@ import {
   Trash2,
   Image as ImageIcon,
   CheckCircle2,
-  Upload,
   Star,
   Calendar,
   MapPin,
@@ -21,6 +20,12 @@ import {
   Phone,
   Clock,
   XCircle,
+  Camera,
+  RefreshCw,
+  FlipHorizontal,
+  AlertCircle,
+  Video,
+  Sparkles,
 } from 'lucide-react';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { useToast } from '../../context/ToastContext';
@@ -77,13 +82,39 @@ export const FarmerDashboard: React.FC<FarmerDashboardProps> = ({
   const [harvestDate, setHarvestDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [farmerLocation, setFarmerLocation] = useState<string>(farmer.location);
   const [description, setDescription] = useState('');
-  const [images, setImages] = useState<string[]>([SAMPLE_CROP_IMAGES.tomato[0]]);
+  const [images, setImages] = useState<string[]>([]);
   const [primaryImageIndex, setPrimaryImageIndex] = useState<number>(0);
   const [isOrganic, setIsOrganic] = useState<boolean>(true);
   const [certificationNumber, setCertificationNumber] = useState<string>('IND-ORG-2026-900');
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Live Camera Capture State
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraFacingMode, setCameraFacingMode] = useState<'environment' | 'user'>('environment');
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
   const { success, error, warning } = useToast();
+
+  // Stop camera when modal closes or unmounts
+  useEffect(() => {
+    if (!isModalOpen) {
+      stopLiveCamera();
+    }
+  }, [isModalOpen]);
+
+  useEffect(() => {
+    return () => {
+      stopLiveCamera();
+    };
+  }, []);
+
+  // Ensure stream is bound to video element if camera becomes active
+  useEffect(() => {
+    if (isCameraActive && videoRef.current && mediaStreamRef.current) {
+      videoRef.current.srcObject = mediaStreamRef.current;
+      videoRef.current.play().catch((e) => console.error('Video play error:', e));
+    }
+  }, [isCameraActive]);
 
   // Filter farmer crops
   const farmerCrops = crops.filter(
@@ -108,6 +139,108 @@ export const FarmerDashboard: React.FC<FarmerDashboardProps> = ({
     .filter((o) => o.status !== 'Rejected')
     .reduce((sum, o) => sum + o.totalAmount, 0);
 
+  const startLiveCamera = async (facing: 'environment' | 'user' = cameraFacingMode) => {
+    setCameraError(null);
+    try {
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+      }
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('CAMERA_NOT_SUPPORTED');
+      }
+
+      let stream: MediaStream;
+      try {
+        const constraints: MediaStreamConstraints = {
+          video: {
+            facingMode: { ideal: facing },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        };
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (constraintErr) {
+        // Fallback to simple video constraints if ideal facingMode fails
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
+
+      mediaStreamRef.current = stream;
+      setIsCameraActive(true);
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch((e) => console.error('Play stream failed:', e));
+      }
+    } catch (err: any) {
+      console.error('Camera stream error:', err);
+      setIsCameraActive(false);
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setCameraError('Camera access was denied. Please enable camera permissions in your browser settings to capture live crop photos.');
+        error('Camera permission denied. Please allow camera access in browser settings.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setCameraError('No camera found on this device. Please connect a webcam or use a mobile camera.');
+        error('No camera detected on this device.');
+      } else if (err.message === 'CAMERA_NOT_SUPPORTED') {
+        setCameraError('Live camera capture is not supported by your browser.');
+        error('Camera not supported.');
+      } else {
+        setCameraError('Unable to access camera. Please check permissions and try again.');
+        error('Failed to open camera.');
+      }
+    }
+  };
+
+  const stopLiveCamera = () => {
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+  };
+
+  const toggleCameraFacing = () => {
+    const nextMode = cameraFacingMode === 'environment' ? 'user' : 'environment';
+    setCameraFacingMode(nextMode);
+    startLiveCamera(nextMode);
+  };
+
+  const captureLivePhoto = () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+
+    if (images.length >= 5) {
+      warning('Maximum 5 product photos reached.');
+      stopLiveCamera();
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const photoDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+
+      setImages((prev) => {
+        const updated = [...prev, photoDataUrl].slice(0, 5);
+        if (prev.length === 0) {
+          setPrimaryImageIndex(0);
+        }
+        return updated;
+      });
+
+      success('Live crop photo captured!', 'Photo Verified');
+      stopLiveCamera();
+    }
+  };
+
   const resetForm = () => {
     setEditingCrop(null);
     setCropName('');
@@ -119,10 +252,11 @@ export const FarmerDashboard: React.FC<FarmerDashboardProps> = ({
     setHarvestDate(new Date().toISOString().split('T')[0]);
     setFarmerLocation(farmer.location);
     setDescription('');
-    setImages([SAMPLE_CROP_IMAGES.tomato[0]]);
+    setImages([]);
     setPrimaryImageIndex(0);
     setIsOrganic(true);
     setCertificationNumber('IND-ORG-2026-900');
+    stopLiveCamera();
   };
 
   const handleOpenAdd = () => {
@@ -141,51 +275,15 @@ export const FarmerDashboard: React.FC<FarmerDashboardProps> = ({
     setHarvestDate(crop.harvestDate);
     setFarmerLocation(crop.farmerLocation);
     setDescription(crop.description);
-    setImages(crop.images && crop.images.length > 0 ? crop.images : [SAMPLE_CROP_IMAGES.tomato[0]]);
+    setImages(crop.images && crop.images.length > 0 ? crop.images : []);
     setPrimaryImageIndex(crop.primaryImageIndex || 0);
     setIsOrganic(crop.isOrganic);
     setCertificationNumber(crop.certificationNumber || '');
+    stopLiveCamera();
     setIsModalOpen(true);
   };
 
-  // Image Upload Handling (supports up to 5 photos)
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    if (images.length + files.length > 5) {
-      error('Maximum 5 product photos allowed.');
-      return;
-    }
-
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setImages((prev) => [...prev, reader.result as string].slice(0, 5));
-          success(`Uploaded photo: ${file.name}`);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
-
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const handleAddPresetImage = (url: string) => {
-    if (images.length >= 5) {
-      error('Maximum 5 photos reached.');
-      return;
-    }
-    setImages((prev) => [...prev, url]);
-    success('Added product photo.');
-  };
-
   const handleRemoveImage = (index: number) => {
-    if (images.length === 1) {
-      error('At least one product photo is required.');
-      return;
-    }
     const newImages = images.filter((_, i) => i !== index);
     setImages(newImages);
     if (primaryImageIndex >= newImages.length) {
@@ -831,100 +929,208 @@ export const FarmerDashboard: React.FC<FarmerDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Multi-Photo Upload Section */}
-              <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 space-y-3">
+              {/* Live Crop Photo Capture Section */}
+              <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <label className="text-xs font-extrabold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
-                      <ImageIcon className="w-4 h-4 text-farm-600" />
-                      <span>Product Photos (Up to 5 Photos) *</span>
+                      <Camera className="w-4 h-4 text-farm-600" />
+                      <span>Live Crop Photo Capture *</span>
+                      <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                        Live Only
+                      </span>
                     </label>
-                    <p className="text-[11px] text-stone-500">
-                      Upload photos showing freshness, color & quality grading.
+                    <p className="text-[11px] text-stone-500 mt-0.5">
+                      Capture a fresh photo of your crop using your device camera (Up to 5 photos).
                     </p>
                   </div>
-                  <span className="text-xs font-mono font-bold text-stone-600">
+                  <span className="text-xs font-mono font-bold text-stone-600 bg-white px-2.5 py-1 rounded-lg border border-stone-200 shadow-2xs">
                     {images.length} / 5 photos
                   </span>
                 </div>
 
-                {/* Upload Action Row */}
-                <div className="flex flex-wrap gap-2">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-4 py-2 rounded-xl bg-white border border-stone-300 hover:border-farm-500 text-stone-700 text-xs font-bold flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
-                  >
-                    <Upload className="w-4 h-4 text-farm-600" />
-                    <span>Upload from Device / Camera</span>
-                  </button>
-
-                  {/* Preset quick buttons */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] text-stone-400 font-semibold">Sample Photos:</span>
-                    <button
-                      type="button"
-                      onClick={() => handleAddPresetImage(SAMPLE_CROP_IMAGES.tomato[1])}
-                      className="px-2 py-1 bg-white border border-stone-200 rounded-lg text-[11px] hover:bg-stone-100 cursor-pointer"
-                    >
-                      + Tomato 2
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAddPresetImage(SAMPLE_CROP_IMAGES.onion[0])}
-                      className="px-2 py-1 bg-white border border-stone-200 rounded-lg text-[11px] hover:bg-stone-100 cursor-pointer"
-                    >
-                      + Onion
-                    </button>
-                  </div>
-                </div>
-
-                {/* Image Thumbnails & Primary Selector */}
-                <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 pt-2">
-                  {images.map((img, idx) => (
-                    <div
-                      key={idx}
-                      className={`relative rounded-xl overflow-hidden aspect-square border-2 group bg-stone-200 ${
-                        primaryImageIndex === idx ? 'border-farm-600 ring-2 ring-farm-500/20' : 'border-stone-200'
-                      }`}
-                    >
-                      <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
-
-                      {/* Primary Badge or Set Primary Button */}
-                      {primaryImageIndex === idx ? (
-                        <span className="absolute top-1 left-1 bg-farm-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xs">
-                          PRIMARY
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setPrimaryImageIndex(idx)}
-                          className="absolute bottom-1 left-1 right-1 bg-stone-900/80 text-white text-[9px] font-bold py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                        >
-                          Set Primary
-                        </button>
-                      )}
-
-                      {/* Remove Button */}
+                {/* Camera Permission / Error Warning Banner */}
+                {cameraError && (
+                  <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5">
+                    <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-bold">Camera Permission Required</p>
+                      <p className="text-rose-700 mt-0.5">{cameraError}</p>
                       <button
                         type="button"
-                        onClick={() => handleRemoveImage(idx)}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                        title="Remove image"
+                        onClick={() => startLiveCamera()}
+                        className="mt-2 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
                       >
-                        <X className="w-3 h-3" />
+                        Retry Camera Access
                       </button>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
+
+                {/* Live Camera Viewfinder (When Active) */}
+                {isCameraActive ? (
+                  <div className="relative rounded-2xl overflow-hidden bg-stone-950 border-2 border-farm-500 shadow-lg animate-fade-in">
+                    {/* Live indicator tag */}
+                    <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-stone-900/80 backdrop-blur-md text-white text-[11px] font-bold border border-white/10">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                      <span className="w-2 h-2 rounded-full bg-rose-500" />
+                      <span>LIVE CAMERA</span>
+                    </div>
+
+                    {/* Camera switch / flip button */}
+                    <button
+                      type="button"
+                      onClick={toggleCameraFacing}
+                      className="absolute top-3 right-3 z-10 p-2 rounded-full bg-stone-900/80 backdrop-blur-md hover:bg-stone-800 text-white text-xs font-medium transition-colors border border-white/10 flex items-center gap-1 cursor-pointer"
+                      title="Switch Camera (Front / Rear)"
+                    >
+                      <FlipHorizontal className="w-4 h-4" />
+                      <span className="text-[11px] font-semibold pr-1">Flip</span>
+                    </button>
+
+                    {/* Video Element */}
+                    <div className="relative aspect-4/3 sm:aspect-16/9 flex items-center justify-center bg-black overflow-hidden">
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="w-full h-full object-cover"
+                      />
+
+                      {/* Viewfinder crosshairs / frame */}
+                      <div className="absolute inset-8 sm:inset-12 border-2 border-white/40 border-dashed rounded-xl pointer-events-none flex flex-col justify-between p-2">
+                        <div className="flex justify-between">
+                          <div className="w-4 h-4 border-t-2 border-l-2 border-white" />
+                          <div className="w-4 h-4 border-t-2 border-r-2 border-white" />
+                        </div>
+                        <div className="text-center">
+                          <span className="text-[11px] font-semibold text-white/80 bg-black/50 px-2 py-0.5 rounded backdrop-blur-xs">
+                            Position crop within frame
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <div className="w-4 h-4 border-b-2 border-l-2 border-white" />
+                          <div className="w-4 h-4 border-b-2 border-r-2 border-white" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Camera Control Bar */}
+                    <div className="p-4 bg-stone-900/90 backdrop-blur-md flex items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        onClick={stopLiveCamera}
+                        className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-bold transition-colors cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={captureLivePhoto}
+                        className="px-6 py-2.5 rounded-xl bg-farm-600 hover:bg-farm-700 active:scale-95 text-white text-sm font-bold flex items-center gap-2 shadow-lg shadow-farm-600/30 transition-all cursor-pointer"
+                      >
+                        <Camera className="w-4 h-4" />
+                        <span>Capture Photo</span>
+                      </button>
+
+                      <span className="text-[11px] text-stone-400 font-mono hidden sm:inline">
+                        Slot {images.length + 1}/5
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  /* Camera Inactive State - Action Button */
+                  <div>
+                    {images.length < 5 ? (
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => startLiveCamera()}
+                          className="px-5 py-3 rounded-2xl bg-gradient-to-r from-farm-600 to-farm-700 hover:from-farm-700 hover:to-farm-800 text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-2.5 shadow-md shadow-farm-600/20 active:scale-98 transition-all cursor-pointer"
+                        >
+                          <Camera className="w-5 h-5" />
+                          <span>{images.length === 0 ? 'Take Live Photo' : 'Capture Another Live Photo'}</span>
+                        </button>
+
+                        <div className="text-[11px] text-stone-500 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>Direct camera capture required to verify crop freshness.</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <span>Maximum of 5 fresh photos captured!</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Image Thumbnails & Primary Selector */}
+                {images.length > 0 && (
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-stone-600 uppercase tracking-wider">
+                        Captured Crop Photos:
+                      </span>
+                      {images.length > 0 && !isCameraActive && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImages([]);
+                            setPrimaryImageIndex(0);
+                            startLiveCamera();
+                          }}
+                          className="text-[11px] text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1 cursor-pointer"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          <span>Retake All</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                      {images.map((img, idx) => (
+                        <div
+                          key={idx}
+                          className={`relative rounded-xl overflow-hidden aspect-square border-2 group bg-stone-200 transition-all ${
+                            primaryImageIndex === idx ? 'border-farm-600 ring-2 ring-farm-500/30 shadow-xs' : 'border-stone-200 hover:border-stone-400'
+                          }`}
+                        >
+                          <img src={img} alt={`Live crop capture ${idx + 1}`} className="w-full h-full object-cover" />
+
+                          {/* Primary Badge or Set Primary Button */}
+                          {primaryImageIndex === idx ? (
+                            <span className="absolute top-1 left-1 bg-farm-600 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow-xs flex items-center gap-0.5">
+                              <Star className="w-2.5 h-2.5 fill-current" />
+                              <span>PRIMARY</span>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setPrimaryImageIndex(idx)}
+                              className="absolute bottom-1 left-1 right-1 bg-stone-900/85 hover:bg-farm-700 text-white text-[9px] font-bold py-1 rounded opacity-0 group-hover:opacity-100 transition-all cursor-pointer text-center"
+                            >
+                              Set Primary
+                            </button>
+                          )}
+
+                          {/* Remove Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImage(idx)}
+                            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-xs"
+                            title="Remove photo"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Organic Certification Checkbox */}
