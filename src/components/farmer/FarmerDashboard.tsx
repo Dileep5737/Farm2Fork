@@ -26,6 +26,9 @@ import {
   AlertCircle,
   Video,
   Sparkles,
+  BarChart3,
+  TrendingUp,
+  ArrowUpRight,
 } from 'lucide-react';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { useToast } from '../../context/ToastContext';
@@ -36,7 +39,7 @@ interface FarmerDashboardProps {
   orders: Order[];
   onRefreshData: () => void;
   onOpenCropDetails?: (crop: CropListing) => void;
-  initialTab?: 'my_crops' | 'orders';
+  initialTab?: 'my_crops' | 'orders' | 'analytics';
   isAddModalOpenInitially?: boolean;
   onCloseAddModal?: () => void;
 }
@@ -51,10 +54,17 @@ export const FarmerDashboard: React.FC<FarmerDashboardProps> = ({
   isAddModalOpenInitially = false,
   onCloseAddModal,
 }) => {
-  const [activeTab, setActiveTab] = useState<'my_crops' | 'orders'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'my_crops' | 'orders' | 'analytics'>(initialTab);
   const [isModalOpen, setIsModalOpen] = useState(isAddModalOpenInitially);
   const [editingCrop, setEditingCrop] = useState<CropListing | null>(null);
   const [deleteTargetCrop, setDeleteTargetCrop] = useState<CropListing | null>(null);
+
+  // Sync activeTab when initialTab prop changes from sidebar navigation
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   // Helper for internal quality rating based on grade
   const getRatingFromGrade = (grade: QualityGrade): number => {
@@ -478,34 +488,53 @@ export const FarmerDashboard: React.FC<FarmerDashboardProps> = ({
         </div>
       </div>
 
-      {/* 3. Clean Dashboard Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-stone-200 pb-2">
-        <button
-          onClick={() => setActiveTab('my_crops')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
-            activeTab === 'my_crops'
-              ? 'bg-farm-600 text-white shadow-sm'
-              : 'text-stone-600 hover:bg-stone-100'
-          }`}
-        >
-          <Layers className="w-4 h-4" />
-          <span>My Products ({farmerCrops.length})</span>
-        </button>
+      {/* 3. Section Title & View Context */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200 pb-3">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-stone-900 flex items-center gap-2">
+            {activeTab === 'my_crops' && (
+              <>
+                <Layers className="w-6 h-6 text-farm-600" />
+                <span>My Products Catalog</span>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-farm-100 text-farm-800 font-extrabold border border-farm-200">
+                  {farmerCrops.length} Active Listings
+                </span>
+              </>
+            )}
+            {activeTab === 'orders' && (
+              <>
+                <Package className="w-6 h-6 text-amber-600" />
+                <span>Received Orders & Deliveries</span>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-extrabold border border-amber-200">
+                  {farmerOrders.length} Direct Orders
+                </span>
+              </>
+            )}
+            {activeTab === 'analytics' && (
+              <>
+                <BarChart3 className="w-6 h-6 text-teal-600" />
+                <span>Sales Velocity & Performance</span>
+              </>
+            )}
+          </h2>
+          <p className="text-xs text-stone-500 mt-0.5">
+            {activeTab === 'my_crops'
+              ? 'Manage product listings, harvest details, quality grades, and farm-gate pricing.'
+              : activeTab === 'orders'
+              ? 'Process incoming buyer purchase orders, update status, and manage delivery handoffs.'
+              : 'Real-time revenue metrics, order fulfillment rate, and top performing commodities.'}
+          </p>
+        </div>
 
-        <button
-          onClick={() => setActiveTab('orders')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all relative cursor-pointer ${
-            activeTab === 'orders'
-              ? 'bg-farm-600 text-white shadow-sm'
-              : 'text-stone-600 hover:bg-stone-100'
-          }`}
-        >
-          <Package className="w-4 h-4" />
-          <span>Received Orders ({farmerOrders.length})</span>
-          {farmerOrders.filter((o) => o.status === 'Pending').length > 0 && (
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-          )}
-        </button>
+        {activeTab === 'my_crops' && (
+          <button
+            onClick={handleOpenAdd}
+            className="self-start sm:self-auto px-4 py-2 rounded-xl bg-farm-600 hover:bg-farm-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 transition cursor-pointer"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>+ Add New Product</span>
+          </button>
+        )}
       </div>
 
       {/* 4. Tab Contents */}
@@ -770,6 +799,105 @@ export const FarmerDashboard: React.FC<FarmerDashboardProps> = ({
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Tab 3: Sales & Analytics */}
+      {activeTab === 'analytics' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-5 rounded-2xl bg-white border border-stone-200 shadow-card">
+              <span className="text-xs font-bold uppercase text-stone-400">Total Direct Revenue</span>
+              <div className="text-2xl font-black text-stone-900 mt-1">₹{totalRevenue.toLocaleString('en-IN')}</div>
+              <div className="text-[11px] text-emerald-600 font-bold mt-1 flex items-center gap-1">
+                <TrendingUp className="w-3 h-3" />
+                <span>+18.4% vs last month</span>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white border border-stone-200 shadow-card">
+              <span className="text-xs font-bold uppercase text-stone-400">Avg Order Value</span>
+              <div className="text-2xl font-black text-stone-900 mt-1">
+                ₹{farmerOrders.length > 0 ? Math.round(totalRevenue / farmerOrders.length).toLocaleString('en-IN') : 0}
+              </div>
+              <div className="text-[11px] text-stone-500 font-medium mt-1">
+                Direct buyer transactions
+              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white border border-stone-200 shadow-card">
+              <span className="text-xs font-bold uppercase text-stone-400">Fulfillment Rate</span>
+              <div className="text-2xl font-black text-stone-900 mt-1">
+                {farmerOrders.length > 0
+                  ? Math.round(
+                      (farmerOrders.filter((o) => o.status === 'Completed' || o.status === 'Ready for Pickup').length /
+                        farmerOrders.length) *
+                        100
+                    )
+                  : 100}
+                %
+              </div>
+              <div className="text-[11px] text-emerald-600 font-medium mt-1">
+                High direct trust score
+              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white border border-stone-200 shadow-card">
+              <span className="text-xs font-bold uppercase text-stone-400">Active Inventory</span>
+              <div className="text-2xl font-black text-stone-900 mt-1">
+                {totalQuantityKg.toLocaleString('en-IN')} kg
+              </div>
+              <div className="text-[11px] text-farm-700 font-medium mt-1">
+                Across {farmerCrops.length} listed crops
+              </div>
+            </div>
+          </div>
+
+          {/* Product Performance Table */}
+          <div className="p-6 bg-white rounded-3xl border border-stone-200 shadow-card space-y-4">
+            <h3 className="text-base font-bold text-stone-900">Crop Inventory & Velocity</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-stone-200 text-stone-500 font-bold uppercase tracking-wider">
+                    <th className="pb-3 font-bold">Crop</th>
+                    <th className="pb-3 font-bold">Category</th>
+                    <th className="pb-3 font-bold">Quality Grade</th>
+                    <th className="pb-3 font-bold">Price / kg</th>
+                    <th className="pb-3 font-bold">Stock Remaining</th>
+                    <th className="pb-3 font-bold">Organic Cert</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100 font-medium">
+                  {farmerCrops.map((crop) => (
+                    <tr key={crop.id} className="hover:bg-stone-50/80">
+                      <td className="py-3.5 font-bold text-stone-900 flex items-center gap-2">
+                        <span>🌱</span>
+                        <span>{crop.cropName}</span>
+                      </td>
+                      <td className="py-3.5 text-stone-600">{crop.category}</td>
+                      <td className="py-3.5">
+                        <span className="px-2 py-0.5 rounded bg-farm-50 text-farm-800 font-bold text-[10px] border border-farm-200">
+                          {crop.qualityGrade}
+                        </span>
+                      </td>
+                      <td className="py-3.5 font-bold text-stone-900">₹{crop.pricePerKg}</td>
+                      <td className="py-3.5 text-stone-700">{crop.quantity} {crop.unit}</td>
+                      <td className="py-3.5">
+                        {crop.isOrganic ? (
+                          <span className="text-emerald-700 font-bold text-[10px] bg-emerald-50 px-2 py-0.5 rounded-full">
+                            ✓ Certified Organic
+                          </span>
+                        ) : (
+                          <span className="text-stone-400 text-[10px]">Standard</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 

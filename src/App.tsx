@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { CropListing, Order, Role, User } from './types';
-import { DEMO_BUYER, DEMO_FARMER, StorageService } from './services/storage';
+import { DEMO_BUYER, StorageService } from './services/storage';
 import { ToastProvider } from './context/ToastContext';
 import { Navbar } from './components/layout/Navbar';
+import { Sidebar } from './components/layout/Sidebar';
 import { LandingPage } from './components/landing/LandingPage';
 import { LoginPage } from './components/auth/LoginPage';
 import { FarmerDashboard } from './components/farmer/FarmerDashboard';
@@ -17,8 +18,11 @@ export const AppContent: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>(() => StorageService.getOrders());
   const [activeTab, setActiveTab] = useState<string>(() => {
     const user = StorageService.getCurrentUser();
-    return user ? (user.role === 'FARMER' ? 'farmer_dashboard' : 'marketplace') : 'login';
+    return user ? (user.role === 'FARMER' ? 'farmer_dashboard' : 'marketplace') : 'landing';
   });
+
+  // Mobile sidebar drawer state
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Login flow state
   const [authInitialRole, setAuthInitialRole] = useState<Role>('FARMER');
@@ -52,6 +56,15 @@ export const AppContent: React.FC = () => {
     setActiveTab('marketplace');
   };
 
+  // Farmer listing count
+  const farmerCropCount = currentUser
+    ? crops.filter(
+        (c) =>
+          c.farmerId === currentUser.id ||
+          c.farmerName.toLowerCase().includes(currentUser.name.toLowerCase().split(' ')[0])
+      ).length
+    : crops.length;
+
   // Order count for badge (relevant for farmer or buyer)
   const relevantOrderCount = currentUser
     ? currentUser.role === 'FARMER'
@@ -72,7 +85,15 @@ export const AppContent: React.FC = () => {
     return (
       <LoginPage
         initialRole={authInitialRole}
-        onBackToHome={() => setActiveTab(currentUser ? (currentUser.role === 'FARMER' ? 'farmer_dashboard' : 'marketplace') : 'landing')}
+        onBackToHome={() =>
+          setActiveTab(
+            currentUser
+              ? currentUser.role === 'FARMER'
+                ? 'farmer_dashboard'
+                : 'marketplace'
+              : 'landing'
+          )
+        }
         onSuccess={(user) => {
           handleUserChange(user);
           setActiveTab(user.role === 'FARMER' ? 'farmer_dashboard' : 'marketplace');
@@ -81,94 +102,147 @@ export const AppContent: React.FC = () => {
     );
   }
 
+  // Render Public Landing Page
+  if (activeTab === 'landing') {
+    return (
+      <div className="min-h-screen flex flex-col bg-stone-50 font-sans selection:bg-farm-200 selection:text-farm-900">
+        <Navbar
+          currentUser={currentUser}
+          currentRole={currentUser?.role || 'BUYER'}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onUserChange={handleUserChange}
+          onOpenAuth={handleOpenAuth}
+          orderCount={relevantOrderCount}
+          onRefreshData={refreshData}
+          onOpenAddCrop={() => {
+            setActiveTab('farmer_dashboard');
+            setIsAddCropModalOpen(true);
+          }}
+        />
+        <main className="flex-1">
+          <LandingPage
+            onLoginAs={handleLandingLoginAs}
+            onExploreMarketplace={handleExploreMarketplace}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // Main Dashboard Layout with Left Sidebar
   return (
-    <div className="min-h-screen flex flex-col bg-stone-50 font-sans selection:bg-farm-200 selection:text-farm-900">
-      {/* Sticky Navigation Bar */}
-      <Navbar
+    <div className="flex h-screen bg-stone-50 overflow-hidden font-sans selection:bg-farm-200 selection:text-farm-900">
+      {/* 1. Left Vertical Sidebar matching Screenshot */}
+      <Sidebar
         currentUser={currentUser}
-        currentRole={currentUser?.role || 'BUYER'}
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onUserChange={handleUserChange}
         onOpenAuth={handleOpenAuth}
+        cropCount={farmerCropCount}
         orderCount={relevantOrderCount}
         onRefreshData={refreshData}
         onOpenAddCrop={() => {
           setActiveTab('farmer_dashboard');
           setIsAddCropModalOpen(true);
         }}
+        isOpenMobile={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 pt-6">
-        {/* 1. Landing Page */}
-        {activeTab === 'landing' && (
-          <LandingPage
-            onLoginAs={handleLandingLoginAs}
-            onExploreMarketplace={handleExploreMarketplace}
-          />
-        )}
+      {/* 2. Right Main Layout Area */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        {/* Top Header Bar without center tabs */}
+        <Navbar
+          currentUser={currentUser}
+          currentRole={currentUser?.role || 'BUYER'}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onUserChange={handleUserChange}
+          onOpenAuth={handleOpenAuth}
+          orderCount={relevantOrderCount}
+          onRefreshData={refreshData}
+          onOpenAddCrop={() => {
+            setActiveTab('farmer_dashboard');
+            setIsAddCropModalOpen(true);
+          }}
+          onToggleSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+        />
 
-        {/* 2. Farmer Views */}
-        {currentUser && currentUser.role === 'FARMER' && (
-          <>
-            {activeTab === 'farmer_dashboard' && (
-              <FarmerDashboard
-                farmer={currentUser}
-                crops={crops}
-                orders={orders}
-                onRefreshData={refreshData}
-                onOpenCropDetails={(c) => setSelectedCropForDetails(c)}
-                initialTab="my_crops"
-                isAddModalOpenInitially={isAddCropModalOpen}
-                onCloseAddModal={() => setIsAddCropModalOpen(false)}
-              />
-            )}
-            {activeTab === 'farmer_orders' && (
-              <FarmerDashboard
-                farmer={currentUser}
-                crops={crops}
-                orders={orders}
-                onRefreshData={refreshData}
-                onOpenCropDetails={(c) => setSelectedCropForDetails(c)}
-                initialTab="orders"
-              />
-            )}
-          </>
-        )}
+        {/* Scrollable View Container */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          {/* Farmer Views */}
+          {currentUser && currentUser.role === 'FARMER' && (
+            <>
+              {activeTab === 'farmer_dashboard' && (
+                <FarmerDashboard
+                  farmer={currentUser}
+                  crops={crops}
+                  orders={orders}
+                  onRefreshData={refreshData}
+                  onOpenCropDetails={(c) => setSelectedCropForDetails(c)}
+                  initialTab="my_crops"
+                  isAddModalOpenInitially={isAddCropModalOpen}
+                  onCloseAddModal={() => setIsAddCropModalOpen(false)}
+                />
+              )}
+              {activeTab === 'farmer_orders' && (
+                <FarmerDashboard
+                  farmer={currentUser}
+                  crops={crops}
+                  orders={orders}
+                  onRefreshData={refreshData}
+                  onOpenCropDetails={(c) => setSelectedCropForDetails(c)}
+                  initialTab="orders"
+                />
+              )}
+              {activeTab === 'farmer_analytics' && (
+                <FarmerDashboard
+                  farmer={currentUser}
+                  crops={crops}
+                  orders={orders}
+                  onRefreshData={refreshData}
+                  onOpenCropDetails={(c) => setSelectedCropForDetails(c)}
+                  initialTab="analytics"
+                />
+              )}
+            </>
+          )}
 
-        {/* 3. Buyer Views */}
-        {(!currentUser || currentUser.role === 'BUYER') && (
-          <>
-            {activeTab === 'marketplace' && (
-              <BuyerMarketplace
-                buyer={currentUser || DEMO_BUYER}
-                crops={crops}
-                onRefreshData={refreshData}
-                onNavigateToOrders={() => setActiveTab('buyer_orders')}
-              />
-            )}
+          {/* Buyer Views */}
+          {(!currentUser || currentUser.role === 'BUYER') && (
+            <>
+              {activeTab === 'marketplace' && (
+                <BuyerMarketplace
+                  buyer={currentUser || DEMO_BUYER}
+                  crops={crops}
+                  onRefreshData={refreshData}
+                  onNavigateToOrders={() => setActiveTab('buyer_orders')}
+                />
+              )}
 
-            {activeTab === 'compare_crops' && (
-              <BuyerMarketplace
-                buyer={currentUser || DEMO_BUYER}
-                crops={crops}
-                onRefreshData={refreshData}
-                onNavigateToOrders={() => setActiveTab('buyer_orders')}
-                forceCompareView={true}
-              />
-            )}
+              {activeTab === 'compare_crops' && (
+                <BuyerMarketplace
+                  buyer={currentUser || DEMO_BUYER}
+                  crops={crops}
+                  onRefreshData={refreshData}
+                  onNavigateToOrders={() => setActiveTab('buyer_orders')}
+                  forceCompareView={true}
+                />
+              )}
 
-            {activeTab === 'buyer_orders' && (
-              <BuyerOrders
-                buyer={currentUser || DEMO_BUYER}
-                orders={orders}
-                onExploreMore={() => setActiveTab('marketplace')}
-              />
-            )}
-          </>
-        )}
-      </main>
+              {activeTab === 'buyer_orders' && (
+                <BuyerOrders
+                  buyer={currentUser || DEMO_BUYER}
+                  orders={orders}
+                  onExploreMore={() => setActiveTab('marketplace')}
+                />
+              )}
+            </>
+          )}
+        </main>
+      </div>
 
       {/* Global Product Details Modal */}
       {selectedCropForDetails && (
@@ -208,4 +282,3 @@ export default function App() {
     </ToastProvider>
   );
 }
-
