@@ -64,7 +64,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const handleLogout = () => {
     onUserChange(null);
-    onTabChange('landing');
+    onTabChange('login');
     setIsDemoDropdownOpen(false);
     info('You have logged out.');
   };

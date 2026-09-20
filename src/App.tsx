@@ -4,7 +4,6 @@ import { DEMO_BUYER, StorageService } from './services/storage';
 import { ToastProvider } from './context/ToastContext';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
-import { LandingPage } from './components/landing/LandingPage';
 import { LoginPage } from './components/auth/LoginPage';
 import { FarmerDashboard } from './components/farmer/FarmerDashboard';
 import { BuyerMarketplace } from './components/buyer/BuyerMarketplace';
@@ -18,7 +17,7 @@ export const AppContent: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>(() => StorageService.getOrders());
   const [activeTab, setActiveTab] = useState<string>(() => {
     const user = StorageService.getCurrentUser();
-    return user ? (user.role === 'FARMER' ? 'farmer_dashboard' : 'marketplace') : 'landing';
+    return user ? (user.role === 'FARMER' ? 'farmer_dashboard' : 'marketplace') : 'login';
   });
 
   // Mobile sidebar drawer state
@@ -46,16 +45,6 @@ export const AppContent: React.FC = () => {
     setActiveTab('login');
   };
 
-  const handleLandingLoginAs = (role: Role) => {
-    setAuthInitialRole(role);
-    setActiveTab('login');
-  };
-
-  const handleExploreMarketplace = () => {
-    handleUserChange(DEMO_BUYER);
-    setActiveTab('marketplace');
-  };
-
   // Farmer listing count
   const farmerCropCount = currentUser
     ? crops.filter(
@@ -80,20 +69,16 @@ export const AppContent: React.FC = () => {
         ).length
     : 0;
 
-  // Render Full Screen Login Page when activeTab === 'login'
-  if (activeTab === 'login') {
+  // Render Full Screen Login Page directly if not logged in or activeTab === 'login'
+  if (!currentUser || activeTab === 'login') {
     return (
       <LoginPage
         initialRole={authInitialRole}
-        onBackToHome={() =>
-          setActiveTab(
-            currentUser
-              ? currentUser.role === 'FARMER'
-                ? 'farmer_dashboard'
-                : 'marketplace'
-              : 'landing'
-          )
-        }
+        onBackToHome={() => {
+          if (currentUser) {
+            setActiveTab(currentUser.role === 'FARMER' ? 'farmer_dashboard' : 'marketplace');
+          }
+        }}
         onSuccess={(user) => {
           handleUserChange(user);
           setActiveTab(user.role === 'FARMER' ? 'farmer_dashboard' : 'marketplace');
@@ -102,38 +87,10 @@ export const AppContent: React.FC = () => {
     );
   }
 
-  // Render Public Landing Page
-  if (activeTab === 'landing') {
-    return (
-      <div className="min-h-screen flex flex-col bg-stone-50 font-sans selection:bg-farm-200 selection:text-farm-900">
-        <Navbar
-          currentUser={currentUser}
-          currentRole={currentUser?.role || 'BUYER'}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onUserChange={handleUserChange}
-          onOpenAuth={handleOpenAuth}
-          orderCount={relevantOrderCount}
-          onRefreshData={refreshData}
-          onOpenAddCrop={() => {
-            setActiveTab('farmer_dashboard');
-            setIsAddCropModalOpen(true);
-          }}
-        />
-        <main className="flex-1">
-          <LandingPage
-            onLoginAs={handleLandingLoginAs}
-            onExploreMarketplace={handleExploreMarketplace}
-          />
-        </main>
-      </div>
-    );
-  }
-
   // Main Dashboard Layout with Left Sidebar
   return (
     <div className="flex h-screen bg-stone-50 overflow-hidden font-sans selection:bg-farm-200 selection:text-farm-900">
-      {/* 1. Left Vertical Sidebar matching Screenshot */}
+      {/* 1. Left Vertical Navigation Sidebar */}
       <Sidebar
         currentUser={currentUser}
         activeTab={activeTab}
@@ -173,7 +130,7 @@ export const AppContent: React.FC = () => {
         {/* Scrollable View Container */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           {/* Farmer Views */}
-          {currentUser && currentUser.role === 'FARMER' && (
+          {currentUser.role === 'FARMER' && (
             <>
               {activeTab === 'farmer_dashboard' && (
                 <FarmerDashboard
@@ -211,11 +168,11 @@ export const AppContent: React.FC = () => {
           )}
 
           {/* Buyer Views */}
-          {(!currentUser || currentUser.role === 'BUYER') && (
+          {currentUser.role === 'BUYER' && (
             <>
               {activeTab === 'marketplace' && (
                 <BuyerMarketplace
-                  buyer={currentUser || DEMO_BUYER}
+                  buyer={currentUser}
                   crops={crops}
                   onRefreshData={refreshData}
                   onNavigateToOrders={() => setActiveTab('buyer_orders')}
@@ -224,7 +181,7 @@ export const AppContent: React.FC = () => {
 
               {activeTab === 'compare_crops' && (
                 <BuyerMarketplace
-                  buyer={currentUser || DEMO_BUYER}
+                  buyer={currentUser}
                   crops={crops}
                   onRefreshData={refreshData}
                   onNavigateToOrders={() => setActiveTab('buyer_orders')}
@@ -234,7 +191,7 @@ export const AppContent: React.FC = () => {
 
               {activeTab === 'buyer_orders' && (
                 <BuyerOrders
-                  buyer={currentUser || DEMO_BUYER}
+                  buyer={currentUser}
                   orders={orders}
                   onExploreMore={() => setActiveTab('marketplace')}
                 />

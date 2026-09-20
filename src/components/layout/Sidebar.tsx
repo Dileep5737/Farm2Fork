@@ -71,7 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const handleLogout = () => {
     onUserChange(null);
-    onTabChange('landing');
+    onTabChange('login');
     onCloseMobile();
     info('You have logged out.');
   };
@@ -107,7 +107,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex items-center justify-between">
             <button
               onClick={() => {
-                onTabChange(currentUser ? (currentUser.role === 'FARMER' ? 'farmer_dashboard' : 'marketplace') : 'landing');
+                onTabChange(currentUser ? (currentUser.role === 'FARMER' ? 'farmer_dashboard' : 'marketplace') : 'login');
                 onCloseMobile();
               }}
               className="flex items-center gap-3 text-left group"
