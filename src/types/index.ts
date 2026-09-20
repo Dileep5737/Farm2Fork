@@ -1,4 +1,7 @@
 export type Role = 'FARMER' | 'BUYER';
+export type RegionType = 'LOCAL' | 'INTERNATIONAL';
+export type Currency = 'USD' | 'EUR' | 'AED' | 'GBP' | 'INR';
+export type Incoterm = 'FOB' | 'CIF' | 'EXW' | 'CFR';
 
 export interface Coordinates {
   lat: number;
@@ -11,11 +14,17 @@ export interface User {
   email: string;
   phone: string;
   role: Role;
+  region?: RegionType;
   location: string;
   coordinates: Coordinates;
   farmName?: string;
+  companyName?: string;
+  country?: string;
+  destinationPort?: string;
   avatar?: string;
   fpoMember?: boolean;
+  apedaRegistered?: boolean;
+  exportLicenseNumber?: string;
 }
 
 export type QualityGrade = 'Grade A+' | 'Grade A' | 'Grade B' | 'Grade C';
@@ -55,6 +64,49 @@ export interface CropListing {
   isOrganic: boolean;
   certificationNumber?: string;
   status: 'ACTIVE' | 'SOLD_OUT' | 'UNLISTED';
+  createdAt: string;
+}
+
+// International Export Listing Interface
+export interface ExportListing {
+  id: string;
+  farmerId: string;
+  farmerName: string;
+  farmName: string;
+  farmerPhone: string;
+  farmerEmail: string;
+  originCountry: string;
+  originPort: string; // e.g., 'JNPT Port, Mumbai' | 'Chennai Port' | 'Cochin Port' | 'Kandla Port'
+  cropName: string;
+  scientificName?: string;
+  category: CropCategory;
+  qualityGrade: QualityGrade;
+  qualityScore: number; // 4.0 - 5.0
+  availableQuantityMT: number; // In Metric Tons
+  minOrderQuantityMT: number; // Minimum Order in MT
+  containerType: '20ft Reefer FCL' | '40ft High Cube Reefer' | '20ft Dry FCL' | 'Bulk Cargo';
+  packaging: string; // e.g. '5kg Corrugated Export Box' | '25kg Jute Bag' | '50kg HDPE Poly-Lined'
+  pricePerKgUSD: number; // Base USD price per kg
+  fobPricePerMTUSD: number; // FOB price per Metric Ton in USD
+  cifEstimatesUSD: {
+    dubai: number; // Port of Jebel Ali, UAE
+    rotterdam: number; // Port of Rotterdam, Netherlands
+    singapore: number; // Port of Singapore
+    london: number; // London Gateway, UK
+    newyork: number; // Port of New York, USA
+  };
+  incotermsAvailable: Incoterm[];
+  harvestDate: string;
+  shelfLifeDays: number;
+  temperatureControlled: boolean;
+  targetTempCelsius?: string; // e.g. '12°C - 14°C'
+  certifications: string[]; // ['APEDA Certified', 'Phytosanitary Cleared', 'GlobalG.A.P.', 'SGS Verified', 'USDA Organic']
+  apedaCertificateNo: string;
+  sgsInspectionStatus: 'PASSED' | 'IN_PROGRESS' | 'CERTIFIED';
+  images: string[];
+  primaryImageIndex: number;
+  description: string;
+  status: 'ACTIVE' | 'BOOKED' | 'DISPATCHED';
   createdAt: string;
 }
 
@@ -102,6 +154,55 @@ export interface Order {
   status: OrderStatus;
   createdAt: string;
   paymentMethod: 'DIRECT_ESCROW' | 'UPI_INSTANT' | 'CASH_ON_DELIVERY';
+}
+
+// International Export Order Interface
+export type ExportOrderStatus =
+  | 'INQUIRY_PLACED'
+  | 'LC_ESCROW_LOCKED'
+  | 'PHYTOSANITARY_CLEARED'
+  | 'CUSTOMS_APPROVED'
+  | 'VESSEL_LOADED'
+  | 'IN_TRANSIT_SEA'
+  | 'CUSTOMS_ARRIVED'
+  | 'COMPLETED';
+
+export interface ExportOrder {
+  id: string;
+  exportListingId: string;
+  cropName: string;
+  cropImage: string;
+  category: CropCategory;
+  farmerId: string;
+  farmerName: string;
+  farmName: string;
+  farmerPhone: string;
+  farmerEmail: string;
+  originPort: string;
+  buyerId: string;
+  buyerName: string;
+  buyerCompany: string;
+  buyerCountry: string;
+  destinationPort: string;
+  quantityMT: number;
+  containerCount: number;
+  containerType: string;
+  incoterm: Incoterm;
+  currency: Currency;
+  unitPriceUSD: number;
+  totalAmountUSD: number;
+  paymentMethod: 'LETTER_OF_CREDIT' | 'INTERNATIONAL_ESCROW' | 'BANK_WIRE_TT';
+  lcReferenceNumber?: string;
+  billOfLadingNo?: string;
+  containerNumber?: string;
+  vesselName?: string;
+  carrierName?: string;
+  estimatedArrivalDate: string;
+  status: ExportOrderStatus;
+  sgsInspectionCertificateUrl?: string;
+  phytosanitaryCertificateNo: string;
+  apedaCertificateNo: string;
+  createdAt: string;
 }
 
 export interface FilterOptions {

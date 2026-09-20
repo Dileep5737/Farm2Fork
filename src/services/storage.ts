@@ -1,12 +1,15 @@
-import { CropListing, Order, RecommendationWeights, User } from '../types';
+import { CropListing, Order, RecommendationWeights, User, ExportListing, ExportOrder, ExportOrderStatus, RegionType } from '../types';
 import { DEFAULT_WEIGHTS } from './recommendation';
 
 const STORAGE_KEYS = {
   CURRENT_USER: 'farm2fork_current_user',
   CROPS: 'farm2fork_crops',
   ORDERS: 'farm2fork_orders',
+  EXPORT_CROPS: 'farm2fork_export_crops_v1',
+  EXPORT_ORDERS: 'farm2fork_export_orders_v1',
+  SELECTED_REGION: 'farm2fork_selected_region',
   WEIGHTS: 'farm2fork_weights',
-  INITIALIZED: 'farm2fork_initialized_v4',
+  INITIALIZED: 'farm2fork_initialized_v5',
 };
 
 // Curated high quality agriculture images
@@ -44,6 +47,13 @@ export const SAMPLE_CROP_IMAGES = {
     'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1603833665858-e61d17a86224?auto=format&fit=crop&w=800&q=80',
   ],
+  turmeric: [
+    'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1509358271058-acd22cc93898?auto=format&fit=crop&w=800&q=80',
+  ],
+  pepper: [
+    'https://images.unsplash.com/photo-1599940824399-b87987ceb72a?auto=format&fit=crop&w=800&q=80',
+  ],
 };
 
 export const DEMO_FARMER: User = {
@@ -52,6 +62,7 @@ export const DEMO_FARMER: User = {
   email: 'farmer@farm2fork.com',
   phone: '+91 98450 12345',
   role: 'FARMER',
+  region: 'LOCAL',
   location: 'Doddaballapura, Bengaluru Rural',
   coordinates: { lat: 13.2925, lng: 77.5429 },
   farmName: 'Green Valley Organic Farms & FPO',
@@ -65,8 +76,42 @@ export const DEMO_BUYER: User = {
   email: 'buyer@farm2fork.com',
   phone: '+91 99887 65432',
   role: 'BUYER',
+  region: 'LOCAL',
   location: 'Indiranagar, Bengaluru Central',
   coordinates: { lat: 12.9784, lng: 77.6408 },
+  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+};
+
+export const DEMO_INTL_FARMER: User = {
+  id: 'intl-farmer-1',
+  name: 'Kiran Patel',
+  email: 'exports@greenvalleyagri.com',
+  phone: '+91 98450 12345',
+  role: 'FARMER',
+  region: 'INTERNATIONAL',
+  location: 'JNPT Port Gateway, Mumbai & Bengaluru Hub',
+  coordinates: { lat: 18.9499, lng: 72.9525 },
+  farmName: 'Green Valley Global Agri Exports Consortium',
+  companyName: 'Green Valley Agri Exports Ltd',
+  country: 'India',
+  avatar: 'https://images.unsplash.com/photo-1595152772835-219674b2a8a6?auto=format&fit=crop&w=200&q=80',
+  fpoMember: true,
+  apedaRegistered: true,
+  exportLicenseNumber: 'APEDA/EXP/2026/9021',
+};
+
+export const DEMO_INTL_BUYER: User = {
+  id: 'intl-buyer-1',
+  name: 'Alexandre Dubois',
+  email: 'alexandre@eurofreshimports.nl',
+  phone: '+31 6 12345678',
+  role: 'BUYER',
+  region: 'INTERNATIONAL',
+  location: 'Port of Rotterdam Logistics District, Netherlands',
+  coordinates: { lat: 51.9244, lng: 4.4777 },
+  companyName: 'EuroFresh Continental Imports B.V.',
+  country: 'Netherlands',
+  destinationPort: 'Port of Rotterdam',
   avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
 };
 
@@ -635,6 +680,375 @@ export const SEED_ORDERS: Order[] = [
   },
 ];
 
+export const SEED_EXPORT_LISTINGS: ExportListing[] = [
+  {
+    id: 'exp-crop-1',
+    farmerId: 'intl-farmer-1',
+    farmerName: 'Kiran Patel',
+    farmName: 'Green Valley Global Agri Exports Consortium',
+    farmerPhone: '+91 98450 12345',
+    farmerEmail: 'exports@greenvalleyagri.com',
+    originCountry: 'India',
+    originPort: 'JNPT Port, Mumbai',
+    cropName: 'Ratnagiri Export Alphonso Mangoes',
+    scientificName: 'Mangifera indica',
+    category: 'Fruits',
+    qualityGrade: 'Grade A+',
+    qualityScore: 4.9,
+    availableQuantityMT: 20,
+    minOrderQuantityMT: 5,
+    containerType: '20ft Reefer FCL',
+    packaging: '5kg Ventilated Corrugated Export Box (12 pieces/box)',
+    pricePerKgUSD: 2.8,
+    fobPricePerMTUSD: 2800,
+    cifEstimatesUSD: {
+      dubai: 3100,
+      rotterdam: 3450,
+      singapore: 3250,
+      london: 3500,
+      newyork: 3750,
+    },
+    incotermsAvailable: ['FOB', 'CIF', 'CFR'],
+    harvestDate: '2026-09-15',
+    shelfLifeDays: 24,
+    temperatureControlled: true,
+    targetTempCelsius: '12°C - 14°C',
+    certifications: ['APEDA Certified', 'GlobalG.A.P.', 'SGS Verified', 'Phytosanitary Cleared'],
+    apedaCertificateNo: 'APEDA/EXP/2026/9021',
+    sgsInspectionStatus: 'PASSED',
+    images: [
+      'https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1601493700631-2b16ec4b4716?auto=format&fit=crop&w=800&q=80',
+    ],
+    primaryImageIndex: 0,
+    description: 'GI-tagged Ratnagiri Alphonso mangoes with natural golden skin, zero carbide ripening, and Brix sweetness level > 19. Full pesticide residue clearance.',
+    status: 'ACTIVE',
+    createdAt: '2026-09-18T10:00:00.000Z',
+  },
+  {
+    id: 'exp-crop-2',
+    farmerId: 'intl-farmer-1',
+    farmerName: 'Kiran Patel',
+    farmName: 'Punjab Golden Grains & Basmati Consortium',
+    farmerPhone: '+91 98450 12345',
+    farmerEmail: 'exports@greenvalleyagri.com',
+    originCountry: 'India',
+    originPort: 'Kandla Port, Gujarat',
+    cropName: 'Royal 1121 Extra Long Grain Basmati Rice',
+    scientificName: 'Oryza sativa',
+    category: 'Grains',
+    qualityGrade: 'Grade A+',
+    qualityScore: 4.8,
+    availableQuantityMT: 60,
+    minOrderQuantityMT: 20,
+    containerType: '20ft Dry FCL',
+    packaging: '25kg Non-Woven Polypropylene Export Bags',
+    pricePerKgUSD: 1.35,
+    fobPricePerMTUSD: 1350,
+    cifEstimatesUSD: {
+      dubai: 1520,
+      rotterdam: 1680,
+      singapore: 1560,
+      london: 1700,
+      newyork: 1850,
+    },
+    incotermsAvailable: ['FOB', 'CIF'],
+    harvestDate: '2026-09-10',
+    shelfLifeDays: 730,
+    temperatureControlled: false,
+    certifications: ['APEDA Certified', 'Phytosanitary Cleared', 'ISO 22000', 'SGS Verified'],
+    apedaCertificateNo: 'APEDA/BAS/2026/4402',
+    sgsInspectionStatus: 'CERTIFIED',
+    images: [
+      'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1536304929831-ee1ca9d44906?auto=format&fit=crop&w=800&q=80',
+    ],
+    primaryImageIndex: 0,
+    description: 'Aged 2 years, average grain length 8.35mm before cooking, elongation ratio 2.5x with delicate floral aroma. Certified zero aflatoxins.',
+    status: 'ACTIVE',
+    createdAt: '2026-09-17T08:30:00.000Z',
+  },
+  {
+    id: 'exp-crop-3',
+    farmerId: 'intl-farmer-1',
+    farmerName: 'Kiran Patel',
+    farmName: 'Salem Organic Spice Cultivators Hub',
+    farmerPhone: '+91 98450 12345',
+    farmerEmail: 'exports@greenvalleyagri.com',
+    originCountry: 'India',
+    originPort: 'Chennai Port',
+    cropName: 'High-Curcumin Salem Organic Turmeric Fingers',
+    scientificName: 'Curcuma longa',
+    category: 'Spices',
+    qualityGrade: 'Grade A+',
+    qualityScore: 4.9,
+    availableQuantityMT: 30,
+    minOrderQuantityMT: 5,
+    containerType: '20ft Dry FCL',
+    packaging: '50kg Double Jute Bags with inner Food-Grade Liner',
+    pricePerKgUSD: 2.2,
+    fobPricePerMTUSD: 2200,
+    cifEstimatesUSD: {
+      dubai: 2450,
+      rotterdam: 2680,
+      singapore: 2500,
+      london: 2720,
+      newyork: 2900,
+    },
+    incotermsAvailable: ['FOB', 'CIF', 'EXW'],
+    harvestDate: '2026-09-12',
+    shelfLifeDays: 365,
+    temperatureControlled: false,
+    certifications: ['USDA Organic', 'EU Organic', 'APEDA Certified', 'Spices Board Verified'],
+    apedaCertificateNo: 'APEDA/SPICE/2026/7781',
+    sgsInspectionStatus: 'PASSED',
+    images: [
+      'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1509358271058-acd22cc93898?auto=format&fit=crop&w=800&q=80',
+    ],
+    primaryImageIndex: 0,
+    description: 'Deep orange-yellow turmeric fingers with lab-tested Curcumin concentration > 5.4%. Low lead/heavy metal content meeting strict EU/US FDA standards.',
+    status: 'ACTIVE',
+    createdAt: '2026-09-16T14:20:00.000Z',
+  },
+  {
+    id: 'exp-crop-4',
+    farmerId: 'intl-farmer-1',
+    farmerName: 'Kiran Patel',
+    farmName: 'Theni Valley Cavendish Banana FPO',
+    farmerPhone: '+91 98450 12345',
+    farmerEmail: 'exports@greenvalleyagri.com',
+    originCountry: 'India',
+    originPort: 'Cochin Port',
+    cropName: 'Export Grade Cavendish Green Bananas (Class 1)',
+    scientificName: 'Musa acuminata',
+    category: 'Fruits',
+    qualityGrade: 'Grade A',
+    qualityScore: 4.7,
+    availableQuantityMT: 40,
+    minOrderQuantityMT: 20,
+    containerType: '40ft High Cube Reefer',
+    packaging: '13kg Corrugated Cartons with Poly-Lined Foam',
+    pricePerKgUSD: 0.9,
+    fobPricePerMTUSD: 900,
+    cifEstimatesUSD: {
+      dubai: 1100,
+      rotterdam: 1350,
+      singapore: 1200,
+      london: 1380,
+      newyork: 1550,
+    },
+    incotermsAvailable: ['FOB', 'CIF'],
+    harvestDate: '2026-09-19',
+    shelfLifeDays: 35,
+    temperatureControlled: true,
+    targetTempCelsius: '13.5°C Controlled Atmosphere',
+    certifications: ['GlobalG.A.P.', 'APEDA Certified', 'Phytosanitary Cleared'],
+    apedaCertificateNo: 'APEDA/BAN/2026/3012',
+    sgsInspectionStatus: 'PASSED',
+    images: [
+      'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1603833665858-e61d17a86224?auto=format&fit=crop&w=800&q=80',
+    ],
+    primaryImageIndex: 0,
+    description: 'Uniform 39-44 caliber green bananas harvested at 75-80% maturity stage. Shipped in modified atmosphere liner for extended sea voyage stability.',
+    status: 'ACTIVE',
+    createdAt: '2026-09-19T06:00:00.000Z',
+  },
+  {
+    id: 'exp-crop-5',
+    farmerId: 'intl-farmer-1',
+    farmerName: 'Kiran Patel',
+    farmName: 'Nashik Agri Producer Consortium',
+    farmerPhone: '+91 98450 12345',
+    farmerEmail: 'exports@greenvalleyagri.com',
+    originCountry: 'India',
+    originPort: 'JNPT Port, Mumbai',
+    cropName: 'Fresh Nashik Pink Export Onions (55mm+)',
+    scientificName: 'Allium cepa',
+    category: 'Vegetables',
+    qualityGrade: 'Grade A',
+    qualityScore: 4.6,
+    availableQuantityMT: 50,
+    minOrderQuantityMT: 25,
+    containerType: '20ft Reefer FCL',
+    packaging: '25kg Red Mesh Export Leno Bags',
+    pricePerKgUSD: 0.48,
+    fobPricePerMTUSD: 480,
+    cifEstimatesUSD: {
+      dubai: 620,
+      rotterdam: 780,
+      singapore: 690,
+      london: 810,
+      newyork: 920,
+    },
+    incotermsAvailable: ['FOB', 'CIF'],
+    harvestDate: '2026-09-14',
+    shelfLifeDays: 90,
+    temperatureControlled: true,
+    targetTempCelsius: '0°C - 2°C, 65% RH',
+    certifications: ['APEDA Certified', 'Phytosanitary Cleared', 'SGS Verified'],
+    apedaCertificateNo: 'APEDA/ONION/2026/8890',
+    sgsInspectionStatus: 'CERTIFIED',
+    images: [
+      'https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=800&q=80',
+    ],
+    primaryImageIndex: 0,
+    description: 'Dry cured, well-formed pink globe onions with tight skin and high pungency. Machine graded for 55mm to 70mm diameter export standards.',
+    status: 'ACTIVE',
+    createdAt: '2026-09-15T11:00:00.000Z',
+  },
+  {
+    id: 'exp-crop-6',
+    farmerId: 'intl-farmer-1',
+    farmerName: 'Kiran Patel',
+    farmName: 'Malabar Highland Spice Producers',
+    farmerPhone: '+91 98450 12345',
+    farmerEmail: 'exports@greenvalleyagri.com',
+    originCountry: 'India',
+    originPort: 'Cochin Port',
+    cropName: 'Malabar Extra Bold Garbled Black Pepper (TGSEB)',
+    scientificName: 'Piper nigrum',
+    category: 'Spices',
+    qualityGrade: 'Grade A+',
+    qualityScore: 5.0,
+    availableQuantityMT: 15,
+    minOrderQuantityMT: 2,
+    containerType: '20ft Dry FCL',
+    packaging: '25kg Multi-Wall Paper Bags with PE Liner',
+    pricePerKgUSD: 6.8,
+    fobPricePerMTUSD: 6800,
+    cifEstimatesUSD: {
+      dubai: 7100,
+      rotterdam: 7450,
+      singapore: 7200,
+      london: 7500,
+      newyork: 7700,
+    },
+    incotermsAvailable: ['FOB', 'CIF', 'EXW'],
+    harvestDate: '2026-09-08',
+    shelfLifeDays: 730,
+    temperatureControlled: false,
+    certifications: ['Spices Board India Certified', 'USDA Organic', 'EU Phytosanitary', 'SGS Verified'],
+    apedaCertificateNo: 'APEDA/PEP/2026/1099',
+    sgsInspectionStatus: 'CERTIFIED',
+    images: [
+      'https://images.unsplash.com/photo-1599940824399-b87987ceb72a?auto=format&fit=crop&w=800&q=80',
+    ],
+    primaryImageIndex: 0,
+    description: 'Tellicherry Garbled Special Extra Bold (TGSEB) berries (> 4.75mm diameter), harvested from shade-grown Wayanad vines with piperine content > 6.2%.',
+    status: 'ACTIVE',
+    createdAt: '2026-09-14T16:00:00.000Z',
+  },
+];
+
+export const SEED_EXPORT_ORDERS: ExportOrder[] = [
+  {
+    id: 'EXP-9021',
+    exportListingId: 'exp-crop-1',
+    cropName: 'Ratnagiri Export Alphonso Mangoes',
+    cropImage: 'https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=800&q=80',
+    category: 'Fruits',
+    farmerId: 'intl-farmer-1',
+    farmerName: 'Kiran Patel',
+    farmName: 'Green Valley Global Agri Exports Consortium',
+    farmerPhone: '+91 98450 12345',
+    farmerEmail: 'exports@greenvalleyagri.com',
+    originPort: 'JNPT Port, Mumbai',
+    buyerId: 'intl-buyer-1',
+    buyerName: 'Alexandre Dubois',
+    buyerCompany: 'EuroFresh Continental Imports B.V.',
+    buyerCountry: 'Netherlands',
+    destinationPort: 'Port of Rotterdam',
+    quantityMT: 20,
+    containerCount: 1,
+    containerType: '20ft Reefer FCL',
+    incoterm: 'CIF',
+    currency: 'USD',
+    unitPriceUSD: 3.45,
+    totalAmountUSD: 69000,
+    paymentMethod: 'LETTER_OF_CREDIT',
+    lcReferenceNumber: 'LC-ING-ROT-2026-8819',
+    billOfLadingNo: 'MEDU-902184-IN',
+    containerNumber: 'MSCU-902184-7',
+    vesselName: 'MSC Oscar (Voyage 402W)',
+    carrierName: 'Mediterranean Shipping Company (MSC)',
+    estimatedArrivalDate: '2026-10-04',
+    status: 'IN_TRANSIT_SEA',
+    phytosanitaryCertificateNo: 'IND-PHYTO-2026-9021',
+    apedaCertificateNo: 'APEDA/EXP/2026/9021',
+    createdAt: '2026-09-18T12:00:00.000Z',
+  },
+  {
+    id: 'EXP-9034',
+    exportListingId: 'exp-crop-4',
+    cropName: 'Export Grade Cavendish Green Bananas (Class 1)',
+    cropImage: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&w=800&q=80',
+    category: 'Fruits',
+    farmerId: 'intl-farmer-1',
+    farmerName: 'Kiran Patel',
+    farmName: 'Green Valley Global Agri Exports Consortium',
+    farmerPhone: '+91 98450 12345',
+    farmerEmail: 'exports@greenvalleyagri.com',
+    originPort: 'Cochin Port',
+    buyerId: 'intl-buyer-2',
+    buyerName: 'Tariq Al-Mansoor',
+    buyerCompany: 'Al-Barakah Supermarkets & Wholesale LLC',
+    buyerCountry: 'United Arab Emirates',
+    destinationPort: 'Port of Jebel Ali, Dubai',
+    quantityMT: 40,
+    containerCount: 2,
+    containerType: '40ft High Cube Reefer',
+    incoterm: 'CIF',
+    currency: 'USD',
+    unitPriceUSD: 1.1,
+    totalAmountUSD: 44000,
+    paymentMethod: 'INTERNATIONAL_ESCROW',
+    billOfLadingNo: 'HLCU-DXB-2026-4412',
+    containerNumber: 'HLXU-441029-3',
+    vesselName: 'Hapag-Lloyd Express VII',
+    carrierName: 'Hapag-Lloyd AG',
+    estimatedArrivalDate: '2026-09-28',
+    status: 'CUSTOMS_APPROVED',
+    phytosanitaryCertificateNo: 'IND-PHYTO-2026-3012',
+    apedaCertificateNo: 'APEDA/BAN/2026/3012',
+    createdAt: '2026-09-19T09:15:00.000Z',
+  },
+  {
+    id: 'EXP-9048',
+    exportListingId: 'exp-crop-3',
+    cropName: 'High-Curcumin Salem Organic Turmeric Fingers',
+    cropImage: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=800&q=80',
+    category: 'Spices',
+    farmerId: 'intl-farmer-1',
+    farmerName: 'Kiran Patel',
+    farmName: 'Green Valley Global Agri Exports Consortium',
+    farmerPhone: '+91 98450 12345',
+    farmerEmail: 'exports@greenvalleyagri.com',
+    originPort: 'Chennai Port',
+    buyerId: 'intl-buyer-3',
+    buyerName: 'Mei-Ling Chen',
+    buyerCompany: 'BioGlobal Nutraceuticals Singapore Pte Ltd',
+    buyerCountry: 'Singapore',
+    destinationPort: 'Port of Singapore',
+    quantityMT: 10,
+    containerCount: 1,
+    containerType: '20ft Dry FCL',
+    incoterm: 'FOB',
+    currency: 'USD',
+    unitPriceUSD: 2.2,
+    totalAmountUSD: 22000,
+    paymentMethod: 'LETTER_OF_CREDIT',
+    lcReferenceNumber: 'LC-DBS-SIN-2026-9901',
+    estimatedArrivalDate: '2026-10-02',
+    status: 'LC_ESCROW_LOCKED',
+    phytosanitaryCertificateNo: 'IND-PHYTO-2026-7781',
+    apedaCertificateNo: 'APEDA/SPICE/2026/7781',
+    createdAt: '2026-09-20T07:45:00.000Z',
+  },
+];
+
 /**
  * Storage management helper service with automatic initialization
  */
@@ -643,23 +1057,28 @@ export const StorageService = {
     if (!localStorage.getItem(STORAGE_KEYS.INITIALIZED)) {
       localStorage.setItem(STORAGE_KEYS.CROPS, JSON.stringify(SEED_CROPS));
       localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(SEED_ORDERS));
+      localStorage.setItem(STORAGE_KEYS.EXPORT_CROPS, JSON.stringify(SEED_EXPORT_LISTINGS));
+      localStorage.setItem(STORAGE_KEYS.EXPORT_ORDERS, JSON.stringify(SEED_EXPORT_ORDERS));
       localStorage.setItem(STORAGE_KEYS.WEIGHTS, JSON.stringify(DEFAULT_WEIGHTS));
       localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
     } else {
-      // Migrate any existing cached user in browser if needed
-      const storedUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-      if (storedUser) {
-        try {
-          const parsedUser = JSON.parse(storedUser);
-          if (parsedUser.id === 'farmer-1' && (parsedUser.name === 'Ramesh Kumar' || !parsedUser.name)) {
-            parsedUser.name = 'Kiran';
-            localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(parsedUser));
-          }
-        } catch {
-          // ignore
-        }
+      // Ensure export collections exist in localStorage
+      if (!localStorage.getItem(STORAGE_KEYS.EXPORT_CROPS)) {
+        localStorage.setItem(STORAGE_KEYS.EXPORT_CROPS, JSON.stringify(SEED_EXPORT_LISTINGS));
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.EXPORT_ORDERS)) {
+        localStorage.setItem(STORAGE_KEYS.EXPORT_ORDERS, JSON.stringify(SEED_EXPORT_ORDERS));
       }
     }
+  },
+
+  getRegion(): RegionType {
+    const saved = localStorage.getItem(STORAGE_KEYS.SELECTED_REGION);
+    return saved === 'INTERNATIONAL' ? 'INTERNATIONAL' : 'LOCAL';
+  },
+
+  setRegion(region: RegionType) {
+    localStorage.setItem(STORAGE_KEYS.SELECTED_REGION, region);
   },
 
   getCurrentUser(): User | null {
@@ -671,6 +1090,9 @@ export const StorageService = {
   setCurrentUser(user: User | null) {
     if (user) {
       localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+      if (user.region) {
+        this.setRegion(user.region);
+      }
     } else {
       localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
     }
@@ -738,7 +1160,6 @@ export const StorageService = {
     orders.unshift(newOrder);
     this.saveOrders(orders);
 
-    // Also deduct quantity from the crop
     const crops = this.getCrops();
     const crop = crops.find((c) => c.id === orderData.cropId);
     if (crop) {
@@ -759,6 +1180,93 @@ export const StorageService = {
 
     orders[index].status = status;
     this.saveOrders(orders);
+    return orders[index];
+  },
+
+  // International Export Methods
+  getExportListings(): ExportListing[] {
+    this.initialize();
+    const data = localStorage.getItem(STORAGE_KEYS.EXPORT_CROPS);
+    return data ? JSON.parse(data) : SEED_EXPORT_LISTINGS;
+  },
+
+  saveExportListings(listings: ExportListing[]) {
+    localStorage.setItem(STORAGE_KEYS.EXPORT_CROPS, JSON.stringify(listings));
+  },
+
+  addExportListing(listing: Omit<ExportListing, 'id' | 'createdAt'>): ExportListing {
+    const listings = this.getExportListings();
+    const newListing: ExportListing = {
+      ...listing,
+      id: `exp-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      createdAt: new Date().toISOString(),
+    };
+    listings.unshift(newListing);
+    this.saveExportListings(listings);
+    return newListing;
+  },
+
+  updateExportListing(id: string, updatedFields: Partial<ExportListing>): ExportListing | null {
+    const listings = this.getExportListings();
+    const index = listings.findIndex((l) => l.id === id);
+    if (index === -1) return null;
+
+    const updated = { ...listings[index], ...updatedFields };
+    listings[index] = updated;
+    this.saveExportListings(listings);
+    return updated;
+  },
+
+  deleteExportListing(id: string): boolean {
+    const listings = this.getExportListings();
+    const filtered = listings.filter((l) => l.id !== id);
+    if (filtered.length === listings.length) return false;
+    this.saveExportListings(filtered);
+    return true;
+  },
+
+  getExportOrders(): ExportOrder[] {
+    this.initialize();
+    const data = localStorage.getItem(STORAGE_KEYS.EXPORT_ORDERS);
+    return data ? JSON.parse(data) : SEED_EXPORT_ORDERS;
+  },
+
+  saveExportOrders(orders: ExportOrder[]) {
+    localStorage.setItem(STORAGE_KEYS.EXPORT_ORDERS, JSON.stringify(orders));
+  },
+
+  createExportOrder(orderData: Omit<ExportOrder, 'id' | 'createdAt'>): ExportOrder {
+    const orders = this.getExportOrders();
+    const newOrder: ExportOrder = {
+      ...orderData,
+      id: `EXP-${Math.floor(1000 + Math.random() * 9000)}`,
+      status: 'INQUIRY_PLACED',
+      createdAt: new Date().toISOString(),
+    };
+    orders.unshift(newOrder);
+    this.saveExportOrders(orders);
+
+    // Deduct available export quantity
+    const listings = this.getExportListings();
+    const listing = listings.find((l) => l.id === orderData.exportListingId);
+    if (listing) {
+      listing.availableQuantityMT = Math.max(0, listing.availableQuantityMT - orderData.quantityMT);
+      if (listing.availableQuantityMT === 0) {
+        listing.status = 'BOOKED';
+      }
+      this.saveExportListings(listings);
+    }
+
+    return newOrder;
+  },
+
+  updateExportOrderStatus(orderId: string, status: ExportOrderStatus): ExportOrder | null {
+    const orders = this.getExportOrders();
+    const index = orders.findIndex((o) => o.id === orderId);
+    if (index === -1) return null;
+
+    orders[index].status = status;
+    this.saveExportOrders(orders);
     return orders[index];
   },
 

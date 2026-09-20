@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Role, User } from '../../types';
-import { DEMO_FARMER, DEMO_BUYER, SEED_FARMERS, StorageService } from '../../services/storage';
+import { Role, User, RegionType } from '../../types';
+import { DEMO_FARMER, DEMO_BUYER, DEMO_INTL_FARMER, DEMO_INTL_BUYER, SEED_FARMERS, StorageService } from '../../services/storage';
 import {
   Sprout,
   Phone,
@@ -17,6 +17,7 @@ import {
   KeyRound,
   X,
   Loader2,
+  Ship,
   User as UserIcon,
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
@@ -27,8 +28,6 @@ interface LoginPageProps {
   onBackToHome?: () => void;
 }
 
-type RegionType = 'LOCAL' | 'INTERNATIONAL';
-
 export const LoginPage: React.FC<LoginPageProps> = ({
   initialRole = 'FARMER',
   onSuccess,
@@ -36,8 +35,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 }) => {
   const [selectedRole, setSelectedRole] = useState<Role>(initialRole);
   const [region, setRegion] = useState<RegionType>(() => {
-    const saved = localStorage.getItem('farm2fork_selected_region');
-    return saved === 'INTERNATIONAL' ? 'INTERNATIONAL' : 'LOCAL';
+    return StorageService.getRegion();
   });
   const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
   
@@ -67,20 +65,38 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     setSelectedRole(role);
     setPhoneError('');
     setPasswordError('');
-    if (role === 'FARMER') {
-      setPhoneNumber('9845012345');
+    if (region === 'INTERNATIONAL') {
+      if (role === 'FARMER') {
+        setCountryCode('+91');
+        setPhoneNumber('9845012345');
+      } else {
+        setCountryCode('+31');
+        setPhoneNumber('612345678');
+      }
     } else {
-      setPhoneNumber('9988765432');
+      if (role === 'FARMER') {
+        setPhoneNumber('9845012345');
+      } else {
+        setPhoneNumber('9988765432');
+      }
     }
   };
 
   const handleRegionChange = (newRegion: RegionType) => {
     setRegion(newRegion);
-    localStorage.setItem('farm2fork_selected_region', newRegion);
+    StorageService.setRegion(newRegion);
     setIsRegionDropdownOpen(false);
     if (newRegion === 'INTERNATIONAL') {
-      info('Switched to International Mode. Cross-border trade protocol active.', 'Region Updated');
+      if (selectedRole === 'BUYER') {
+        setCountryCode('+31');
+        setPhoneNumber('612345678');
+      } else {
+        setCountryCode('+91');
+        setPhoneNumber('9845012345');
+      }
+      info('Switched to International Mode. Cross-border agri-export & import suite active.', 'Region Updated');
     } else {
+      setPhoneNumber(selectedRole === 'FARMER' ? '9845012345' : '9988765432');
       info('Switched to Local Mode. Direct domestic farm gate trading active.', 'Region Updated');
     }
   };
@@ -101,7 +117,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       }
     } else {
       // International
-      if (!cleanPhone || cleanPhone.length < 7 || cleanPhone.length > 15) {
+      if (!cleanPhone || cleanPhone.length < 5 || cleanPhone.length > 15) {
         setPhoneError('Please enter a valid international phone number');
         isValid = false;
       } else {
@@ -136,29 +152,38 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       setIsLoading(false);
       const cleanPhone = phoneNumber.trim().replace(/\D/g, '');
 
-      let matchedUser: User | undefined;
+      let matchedUser: User;
 
-      if (selectedRole === 'FARMER') {
-        matchedUser = SEED_FARMERS.find(
-          (f) => f.phone.replace(/\D/g, '').endsWith(cleanPhone) || cleanPhone.endsWith(f.phone.replace(/\D/g, ''))
-        );
-        if (!matchedUser) {
+      if (region === 'INTERNATIONAL') {
+        if (selectedRole === 'FARMER') {
           matchedUser = {
-            ...DEMO_FARMER,
-            phone: region === 'LOCAL' ? `+91 ${cleanPhone}` : `${countryCode} ${cleanPhone}`,
+            ...DEMO_INTL_FARMER,
+            phone: `${countryCode} ${cleanPhone}`,
+          };
+        } else {
+          matchedUser = {
+            ...DEMO_INTL_BUYER,
+            phone: `${countryCode} ${cleanPhone}`,
           };
         }
       } else {
-        matchedUser = {
-          ...DEMO_BUYER,
-          phone: region === 'LOCAL' ? `+91 ${cleanPhone}` : `${countryCode} ${cleanPhone}`,
-        };
+        if (selectedRole === 'FARMER') {
+          matchedUser = {
+            ...DEMO_FARMER,
+            phone: `+91 ${cleanPhone}`,
+          };
+        } else {
+          matchedUser = {
+            ...DEMO_BUYER,
+            phone: `+91 ${cleanPhone}`,
+          };
+        }
       }
 
       StorageService.setCurrentUser(matchedUser);
       success(
-        `Logged in as ${matchedUser.name} (${selectedRole === 'FARMER' ? 'Farmer' : 'Consumer'})`,
-        'Welcome Back!'
+        `Logged in as ${matchedUser.name} (${region === 'INTERNATIONAL' ? (selectedRole === 'FARMER' ? 'Agri-Exporter' : 'Global Importer') : (selectedRole === 'FARMER' ? 'Farmer' : 'Consumer')})`,
+        'Welcome to Farm2Fork!'
       );
       onSuccess(matchedUser);
     }, 500);
@@ -318,7 +343,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               }`}
             >
               <span className="text-base">👨‍🌾</span>
-              <span>Farmer Login</span>
+              <span>{region === 'INTERNATIONAL' ? 'Agri-Exporter' : 'Farmer Login'}</span>
             </button>
 
             <button
@@ -330,8 +355,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              <UserIcon className="w-4 h-4" />
-              <span>Consumer Login</span>
+              {region === 'INTERNATIONAL' ? <Ship className="w-4 h-4" /> : <UserIcon className="w-4 h-4" />}
+              <span>{region === 'INTERNATIONAL' ? 'Global Importer' : 'Consumer Login'}</span>
             </button>
           </div>
 
@@ -487,18 +512,30 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               <div className="flex items-center gap-1.5 text-stone-600 text-xs">
                 <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                 <span className="font-medium text-[11px]">
-                  Testing {selectedRole === 'FARMER' ? 'Farmer' : 'Consumer'} Account
+                  Testing {region === 'INTERNATIONAL' ? (selectedRole === 'FARMER' ? 'Agri-Exporter (Kiran Patel)' : 'Global Importer (Alexandre Dubois)') : (selectedRole === 'FARMER' ? 'Local Farmer (Kiran)' : 'Local Consumer (Priya)')}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => {
-                  if (selectedRole === 'FARMER') {
-                    setPhoneNumber('9845012345');
-                    setPassword('123456');
+                  if (region === 'INTERNATIONAL') {
+                    if (selectedRole === 'FARMER') {
+                      setCountryCode('+91');
+                      setPhoneNumber('9845012345');
+                      setPassword('123456');
+                    } else {
+                      setCountryCode('+31');
+                      setPhoneNumber('612345678');
+                      setPassword('123456');
+                    }
                   } else {
-                    setPhoneNumber('9988765432');
-                    setPassword('123456');
+                    if (selectedRole === 'FARMER') {
+                      setPhoneNumber('9845012345');
+                      setPassword('123456');
+                    } else {
+                      setPhoneNumber('9988765432');
+                      setPassword('123456');
+                    }
                   }
                   info('Demo credentials populated.', 'Quick Fill');
                 }}
