@@ -331,6 +331,36 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </p>
           </div>
 
+          {/* Region Segmented Switcher (Top of Card) */}
+          <div className="flex items-center justify-center mb-5">
+            <div className="inline-flex p-1 bg-stone-100 rounded-2xl border border-stone-200/80 shadow-xs">
+              <button
+                type="button"
+                onClick={() => handleRegionChange('LOCAL')}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  region === 'LOCAL'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>🇮🇳 Domestic Local</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRegionChange('INTERNATIONAL')}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  region === 'INTERNATIONAL'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span>🌐 Global Export</span>
+              </button>
+            </div>
+          </div>
+
           {/* Role Selection Tabs */}
           <div className="grid grid-cols-2 gap-1.5 p-1 bg-stone-100/90 rounded-2xl mb-6 border border-stone-200/60">
             <button
@@ -338,11 +368,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               onClick={() => handleRoleSelect('FARMER')}
               className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                 selectedRole === 'FARMER'
-                  ? 'bg-[#16a34a] text-white shadow-sm'
+                  ? region === 'INTERNATIONAL'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-[#16a34a] text-white shadow-sm'
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              <span className="text-base">👨‍🌾</span>
+              <span className="text-base">{region === 'INTERNATIONAL' ? '🚢' : '👨‍🌾'}</span>
               <span>{region === 'INTERNATIONAL' ? 'Agri-Exporter' : 'Farmer Login'}</span>
             </button>
 
@@ -351,11 +383,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               onClick={() => handleRoleSelect('BUYER')}
               className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                 selectedRole === 'BUYER'
-                  ? 'bg-[#16a34a] text-white shadow-sm'
+                  ? region === 'INTERNATIONAL'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-[#16a34a] text-white shadow-sm'
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              {region === 'INTERNATIONAL' ? <Ship className="w-4 h-4" /> : <UserIcon className="w-4 h-4" />}
+              {region === 'INTERNATIONAL' ? <Globe className="w-4 h-4" /> : <UserIcon className="w-4 h-4" />}
               <span>{region === 'INTERNATIONAL' ? 'Global Importer' : 'Consumer Login'}</span>
             </button>
           </div>
@@ -368,12 +402,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 htmlFor="phone-input"
                 className="block text-xs font-bold text-stone-800 mb-1.5"
               >
-                Phone Number
+                {region === 'INTERNATIONAL' ? 'Registered Trade Phone / Mobile' : 'Phone Number'}
               </label>
               <div
                 className={`relative flex items-center bg-stone-50/80 border rounded-xl px-3 py-2.5 transition-all ${
                   phoneError
                     ? 'border-rose-400 bg-rose-50/40 ring-1 ring-rose-400'
+                    : region === 'INTERNATIONAL'
+                    ? 'border-stone-200 focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20'
                     : 'border-stone-200 focus-within:border-[#16a34a] focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-500/20'
                 }`}
               >
@@ -390,11 +426,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                       className="text-xs font-semibold text-stone-700 bg-transparent outline-none cursor-pointer"
                     >
                       <option value="+91">🇮🇳 +91</option>
+                      <option value="+31">🇳🇱 +31</option>
+                      <option value="+971">🇦🇪 +971</option>
+                      <option value="+65">🇸🇬 +65</option>
                       <option value="+1">🇺🇸 +1</option>
                       <option value="+44">🇬🇧 +44</option>
-                      <option value="+971">🇦🇪 +971</option>
-                      <option value="+61">🇦🇺 +61</option>
-                      <option value="+65">🇸🇬 +65</option>
                     </select>
                   </div>
                 )}
@@ -420,7 +456,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 <p className="text-[11px] text-stone-400 mt-1">
                   {region === 'LOCAL'
                     ? 'Please enter a valid 10-digit phone number'
-                    : 'Enter your international contact number'}
+                    : selectedRole === 'FARMER'
+                    ? 'Agri-Exporter contact (Kiran Patel • Mumbai & Bengaluru Hub)'
+                    : 'Global Importer contact (EuroFresh Continental • Rotterdam)'}
                 </p>
               )}
             </div>
@@ -437,6 +475,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 className={`relative flex items-center bg-stone-50/80 border rounded-xl px-3 py-2.5 transition-all ${
                   passwordError
                     ? 'border-rose-400 bg-rose-50/40 ring-1 ring-rose-400'
+                    : region === 'INTERNATIONAL'
+                    ? 'border-stone-200 focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20'
                     : 'border-stone-200 focus-within:border-[#16a34a] focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-500/20'
                 }`}
               >
@@ -470,7 +510,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 </p>
               ) : (
                 <p className="text-[11px] text-stone-400 mt-1">
-                  Password must be at least 6 characters
+                  Password must be at least 6 characters (Demo: 123456)
                 </p>
               )}
             </div>
@@ -480,7 +520,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 px-6 rounded-xl bg-[#16a34a] hover:bg-[#15803d] active:bg-[#14532d] text-white font-bold text-sm shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
+                className={`w-full py-3 px-6 rounded-xl text-white font-bold text-sm shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed ${
+                  region === 'INTERNATIONAL'
+                    ? 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 shadow-blue-600/25'
+                    : 'bg-[#16a34a] hover:bg-[#15803d] active:bg-[#14532d] shadow-emerald-600/20'
+                }`}
               >
                 {isLoading ? (
                   <>
@@ -489,7 +533,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   </>
                 ) : (
                   <>
-                    <span>Login</span>
+                    <span>
+                      {region === 'INTERNATIONAL'
+                        ? selectedRole === 'FARMER'
+                          ? 'Sign in to Agri-Export Console'
+                          : 'Sign in to Global Importer Portal'
+                        : 'Login'}
+                    </span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -501,47 +551,91 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               <button
                 type="button"
                 onClick={() => setIsForgotPasswordOpen(true)}
-                className="text-xs font-semibold text-[#16a34a] hover:text-[#15803d] hover:underline transition-colors cursor-pointer"
+                className={`text-xs font-semibold hover:underline transition-colors cursor-pointer ${
+                  region === 'INTERNATIONAL' ? 'text-blue-600 hover:text-blue-700' : 'text-[#16a34a] hover:text-[#15803d]'
+                }`}
               >
                 Forgot Password?
               </button>
             </div>
 
             {/* Quick Demo Assist Banner */}
-            <div className="mt-3 p-2.5 rounded-xl bg-stone-50 border border-stone-200/60 flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-stone-600 text-xs">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                <span className="font-medium text-[11px]">
-                  Testing {region === 'INTERNATIONAL' ? (selectedRole === 'FARMER' ? 'Agri-Exporter (Kiran Patel)' : 'Global Importer (Alexandre Dubois)') : (selectedRole === 'FARMER' ? 'Local Farmer (Kiran)' : 'Local Consumer (Priya)')}
-                </span>
+            <div className={`mt-3 p-3 rounded-2xl border flex flex-col gap-2 ${
+              region === 'INTERNATIONAL'
+                ? 'bg-blue-50/70 border-blue-200'
+                : 'bg-stone-50 border-stone-200/70'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-stone-700 text-xs">
+                  <Sparkles className={`w-3.5 h-3.5 shrink-0 ${region === 'INTERNATIONAL' ? 'text-blue-600' : 'text-amber-500'}`} />
+                  <span className="font-bold text-[11px]">
+                    {region === 'INTERNATIONAL'
+                      ? selectedRole === 'FARMER'
+                        ? 'Agri-Exporter (Kiran Patel • Mumbai)'
+                        : 'Global Importer (Alexandre Dubois • Netherlands)'
+                      : selectedRole === 'FARMER'
+                      ? 'Local Farmer (Kiran • Doddaballapura)'
+                      : 'Local Consumer (Priya Sharma • Bengaluru)'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (region === 'INTERNATIONAL') {
+                      if (selectedRole === 'FARMER') {
+                        setCountryCode('+91');
+                        setPhoneNumber('9845012345');
+                        setPassword('123456');
+                      } else {
+                        setCountryCode('+31');
+                        setPhoneNumber('612345678');
+                        setPassword('123456');
+                      }
+                    } else {
+                      if (selectedRole === 'FARMER') {
+                        setPhoneNumber('9845012345');
+                        setPassword('123456');
+                      } else {
+                        setPhoneNumber('9988765432');
+                        setPassword('123456');
+                      }
+                    }
+                    info('Demo credentials populated.', 'Quick Fill');
+                  }}
+                  className={`text-[11px] font-bold px-2 py-0.5 rounded border cursor-pointer ${
+                    region === 'INTERNATIONAL'
+                      ? 'text-blue-700 bg-white border-blue-300 hover:bg-blue-50'
+                      : 'text-[#16a34a] bg-white border-emerald-300 hover:bg-emerald-50'
+                  }`}
+                >
+                  Auto-Fill
+                </button>
               </div>
+
+              {/* Direct Instant 1-Click Login Button */}
               <button
                 type="button"
                 onClick={() => {
+                  let demoUser: User;
                   if (region === 'INTERNATIONAL') {
-                    if (selectedRole === 'FARMER') {
-                      setCountryCode('+91');
-                      setPhoneNumber('9845012345');
-                      setPassword('123456');
-                    } else {
-                      setCountryCode('+31');
-                      setPhoneNumber('612345678');
-                      setPassword('123456');
-                    }
+                    demoUser = selectedRole === 'FARMER' ? DEMO_INTL_FARMER : DEMO_INTL_BUYER;
                   } else {
-                    if (selectedRole === 'FARMER') {
-                      setPhoneNumber('9845012345');
-                      setPassword('123456');
-                    } else {
-                      setPhoneNumber('9988765432');
-                      setPassword('123456');
-                    }
+                    demoUser = selectedRole === 'FARMER' ? DEMO_FARMER : DEMO_BUYER;
                   }
-                  info('Demo credentials populated.', 'Quick Fill');
+                  StorageService.setCurrentUser(demoUser);
+                  success(
+                    `Logged in as ${demoUser.name} (${region === 'INTERNATIONAL' ? (selectedRole === 'FARMER' ? 'Agri-Exporter' : 'Global Importer') : (selectedRole === 'FARMER' ? 'Farmer' : 'Consumer')})`,
+                    'Welcome to Farm2Fork!'
+                  );
+                  onSuccess(demoUser);
                 }}
-                className="text-[11px] font-bold text-[#16a34a] hover:text-[#15803d] hover:underline px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 cursor-pointer"
+                className={`w-full py-1.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  region === 'INTERNATIONAL'
+                    ? 'bg-blue-600/15 hover:bg-blue-600/25 text-blue-900 border border-blue-300'
+                    : 'bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-900 border border-emerald-300'
+                }`}
               >
-                Auto-Fill Demo
+                <span>⚡ 1-Click Instant Demo Login</span>
               </button>
             </div>
           </form>
